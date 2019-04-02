@@ -370,7 +370,7 @@ def main():
         for c in ARTICLE_COUNTS:
             article_ids, qq = get_articles(c)
             print(c, article_ids, qq)
-            entity_to_score, entity_to_count = entity_power_agency(embeddings, avg_embeddings, power=True, filter_set=None, article_filter_set=article_ids, entity_map=AZIZ_MAP)
+            entity_to_score, entity_to_count, _ = entity_power_agency(embeddings, avg_embeddings, power=True, filter_set=None, article_filter_set=article_ids, entity_map=AZIZ_MAP)
             for entity,score in entity_to_score.items():
                 if entity_to_count[entity] >= MIN_MENTIONS:
                     entity_to_our_score[(c, entity)] = score
