@@ -5,7 +5,7 @@
 # The scripts to run will be placed in a directory called "run_scripts"
 
 run_scripts=()
-IN_DIR=$0
+IN_DIR=$1
 
 jobs_per_file=50
 count=0
@@ -27,8 +27,7 @@ for f in ${IN_DIR} ; do
       run_scripts+=("$run_script")
   fi
 
-  tmp_new=${f/.xml/}
-  new_name=${tmp_new/.elmo/.hdf5}
+  new_name=${f/.elmo/.hdf5}
   full_new_name=${new_name/raw_tokenized/embeddings}
 
   echo "if [ ! -f $full_new_name ]; then" >> $run_script

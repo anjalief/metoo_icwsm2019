@@ -194,7 +194,7 @@ def load_dates():
         article_id_to_outlet[i] = datetime.strptime(d, '%Y-%m-%d')
     return article_id_to_outlet
 
-def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=None, filter_articles=None, entity_map=None):
+def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=None, filter_articles=None, entity_map=None, graph_name_str="aziz_power_graph", min_count=8, vertex_scalar=1.5):
     if power:
         train = load_power_all(cfg.POWER_AGENCY)
         preds = get_entity_scores(train, None, None, wgts.power_token_regression, embeddings, avg_embeddings)
@@ -257,7 +257,7 @@ def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=Non
     # remove all vertices that didn't appear in at least 8 articles
     to_delete = []
     for v in entity_to_article_count:
-        if len(entity_to_article_count[v]) < 8:
+        if len(entity_to_article_count[v]) < min_count:
             to_delete.append(v)
 
     edges, edge_weights, vertex_names, vertex_weights, missing = edge_tracker.get_edge_list(to_delete)
@@ -266,7 +266,7 @@ def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=Non
     m = min(vertex_weights)
     if m < 0:
         # scale up for better visualization
-        vertex_weights = [(v + abs(m)) * 1.5 for v in vertex_weights]
+        vertex_weights = [(v + abs(m)) * vertex_scalar for v in vertex_weights]
 
     g = igraph.Graph(edges=edges, vertex_attrs={"name":vertex_names, "v_weights":vertex_weights}, edge_attrs={"weights" : edge_weights}, directed=True)
 
@@ -282,7 +282,7 @@ def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=Non
     visual_style["margin"] = 55
     # visual_style["edge_color"] = edge_colors
     ts = datetime.now().timestamp()
-    graph_name = "aziz_power_graph" + str(ts) + ".png"
+    graph_name = graph_name_str + str(ts) + ".png"
     print("Saving", graph_name)
     igraph.plot(g, graph_name, **visual_style)
 
