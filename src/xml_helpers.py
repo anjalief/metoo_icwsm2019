@@ -3,7 +3,7 @@ import spacy
 en_nlp = spacy.load('en')
 import gzip
 
-def process_xml_text(filename, stem=True, correct_idx=True):
+def process_xml_text(filename, stem=True, correct_idx=True, lower = False):
     if filename.endswith(".gz"):
         fp = gzip.open(filename)
         tree = ET.parse(fp)
@@ -24,9 +24,15 @@ def process_xml_text(filename, stem=True, correct_idx=True):
 
         for tok in s.find('tokens').iter('token'):
             if stem:
-                sent.append(tok.find('lemma').text.lower())
+                if lower:
+                    sent.append(tok.find('lemma').text.lower())
+                else:
+                    sent.append(tok.find('lemma').text)
             else:
-                sent.append(tok.find('word').text.lower())
+                if lower:
+                    sent.append(tok.find('word').text.lower())
+                else:
+                    sent.append(tok.find('word').text)
         full_doc.append(sent)
 
     return root, full_doc
