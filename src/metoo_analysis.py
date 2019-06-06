@@ -134,8 +134,9 @@ def entity_power_agency(embeddings, avg_embeddings, power=True, filter_set=None,
         if filter_set is not None and not e in filter_set:
             continue
 
-        if entity_map is not None and not e in entity_map:
-            continue
+        if entity_map is not None:
+            if not e in entity_map:
+                continue
             e = entity_map[e]
 
         # this is a verb that has some association with e
@@ -166,8 +167,8 @@ def entity_power_agency(embeddings, avg_embeddings, power=True, filter_set=None,
     # Normalise by counts
     for e in entity_to_score:
         entity_to_score[e] /= entity_to_count[e]
-
     return entity_to_score, entity_to_count, entity_to_values
+
 
 def print_top100(entity_to_count, entity_to_score, print_header=""):
     print ("#########################################################################################################################################")
@@ -194,15 +195,13 @@ def load_dates():
         article_id_to_outlet[i] = datetime.strptime(d, '%Y-%m-%d')
     return article_id_to_outlet
 
-def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=None, filter_articles=None, entity_map=None, graph_name_str="aziz_power_graph", min_count=8, vertex_scalar=1.5):
+def build_power_graph(embeddings, avg_embeddings, power=True, filter_articles=None, entity_map=None, graph_name_str="aziz_power_graph", min_count=8, vertex_scalar=1.5):
     if power:
         train = load_power_all(cfg.POWER_AGENCY)
         preds = get_entity_scores(train, None, None, wgts.power_token_regression, embeddings, avg_embeddings)
     else:
         train = load_agency_all(cfg.POWER_AGENCY)
         preds = get_entity_scores(train, None, None, wgts.agency_token_regression, embeddings, avg_embeddings)
-
-    id_to_outlet = load_outlets()
 
     # we ultimately need to control for number of co-occurences in the same article
     # it's easiest to do this 1 article at a time
@@ -215,10 +214,7 @@ def build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=Non
     for e,idxs in embeddings.entity_to_idx.items():
         # this is a verb that has some association with e
         for idx in idxs:
-            article_id = int(os.path.basename(embeddings.tupls[idx].filename).split(".")[0])
-            outlet = id_to_outlet[article_id]
-            if filter_outlets is not None and not outlet in filter_outlets:
-                continue
+            article_id = os.path.basename(embeddings.tupls[idx].filename).split(".")[0]
             if filter_articles is not None and not str(article_id) in filter_articles:
                 continue
             article_to_entity_idx[article_id].append((e, idx))
@@ -317,7 +313,7 @@ def aziz_analysis(embeddings, avg_embeddings, do_print_statistics):
     articles_before.remove("648")
 
     # Figure 5
-    build_power_graph(embeddings, avg_embeddings, power=True, filter_outlets=None, filter_articles=article_list, entity_map=entity_map)
+    build_power_graph(embeddings, avg_embeddings, power=True, filter_articles=article_list, entity_map=entity_map)
 
     print("Num before", len(articles_before))
     print("Num after", len(articles_after))

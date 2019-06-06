@@ -40,10 +40,10 @@ def check_match(h5py_file, xml_file):
         sents.append(" ".join(sent))
 
     f = h5py_file
-    h5py_file = h5py.File(f, 'r')
-    sent_to_idx = ast.literal_eval(h5py_file.get("sentence_to_index")[0])
-    for sent,sent_idx in sent_to_idx.items():
-        assert sent == sents[int(sent_idx)]
+    with h5py.File(f, 'r') as h5py_file:
+        sent_to_idx = ast.literal_eval(h5py_file.get("sentence_to_index")[0])
+        for sent,sent_idx in sent_to_idx.items():
+            assert sent == sents[int(sent_idx)]
 
 def extract_entities(filename):
     root, full_doc = process_xml_text(filename)
@@ -107,35 +107,35 @@ def get_embeddings(f, verb_dict, nlp_id_to_sent, weights=[0,1,0]):
     idx_to_sent = {}
 
     try:
-        h5py_file = h5py.File(f, 'r')
-        sent_to_idx = ast.literal_eval(h5py_file.get("sentence_to_index")[0])
+        with h5py.File(f, 'r') as h5py_file:
+            sent_to_idx = ast.literal_eval(h5py_file.get("sentence_to_index")[0])
 
-        assert(len(h5py_file) - 1 == len(nlp_id_to_sent)), str(len(h5py_file) - 1)
+            assert(len(h5py_file) - 1 == len(nlp_id_to_sent)), str(len(h5py_file) - 1)
 
-        for s in sent_to_idx:
-            idx = int(sent_to_idx[s])
-            idx_to_sent[idx] = s.split()
+            for s in sent_to_idx:
+                idx = int(sent_to_idx[s])
+                idx_to_sent[idx] = s.split()
 
-        for _,tupl in verb_dict.items():
-            # assert what we can, some sentences are missing cause the keys in sentence_to_index are not unique
-            # we're just going to ignore the missing ones for now and hope they don't matter to much
-            # We care more about ones with entities. If we're just doing this to get verb scores it's
-            # not a big deal if we skip a bunch
-            if not tupl.sent_id in idx_to_sent:
-                sent = nlp_id_to_sent[tupl.sent_id]
-                idx = int(sent_to_idx[sent])
-                tupl = tupl._replace(sent_id=idx)
-            else:
-                idx = tupl.sent_id
+            for _,tupl in verb_dict.items():
+                # assert what we can, some sentences are missing cause the keys in sentence_to_index are not unique
+                # we're just going to ignore the missing ones for now and hope they don't matter to much
+                # We care more about ones with entities. If we're just doing this to get verb scores it's
+                # not a big deal if we skip a bunch
+                if not tupl.sent_id in idx_to_sent:
+                    sent = nlp_id_to_sent[tupl.sent_id]
+                    idx = int(sent_to_idx[sent])
+                    tupl = tupl._replace(sent_id=idx)
+                else:
+                    idx = tupl.sent_id
 
-            if tupl.verb.lower() != idx_to_sent[idx][tupl.verb_id]:
-                print("Mismatch", tupl.verb, str(idx_to_sent[idx][tupl.verb_id]), tupl.entity_name, f)
-                continue
+                if tupl.verb.lower() != idx_to_sent[idx][tupl.verb_id]:
+                    print("Mismatch", tupl.verb, str(idx_to_sent[idx][tupl.verb_id]), tupl.entity_name, f)
+                    continue
 
-            s1 = h5py_file.get(str(idx))
-            tupl_to_embeds[tupl] = (s1[0][tupl.verb_id] * weights[0] +
-                                     s1[1][tupl.verb_id] * weights[1] +
-                                     s1[2][tupl.verb_id] * weights[2])
+                s1 = h5py_file.get(str(idx))
+                tupl_to_embeds[tupl] = (s1[0][tupl.verb_id] * weights[0] +
+                                        s1[1][tupl.verb_id] * weights[1] +
+                                        s1[2][tupl.verb_id] * weights[2])
     except UnicodeEncodeError:
         print("Unicode error, probably on mismatch")
     except OSError:
